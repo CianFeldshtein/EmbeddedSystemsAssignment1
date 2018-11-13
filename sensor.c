@@ -1,10 +1,10 @@
 /**
  * \file
- *         Sensor for assesment
- *         Commit 3: Setup broadcast receiving and unicast receiving
+ *         Sensor for assessment
+ *         Final version of sensor file
  * \author
  *         Cian Feldshtein
- *         cian.feldshtein@mycit.ie
+ *	       cian.feldshtein@mycit.ie
  */
 
 #include "contiki.h"
@@ -20,9 +20,8 @@ PROCESS(sensor_information_process, "Sensor Node");
 AUTOSTART_PROCESSES(&sensor_information_process);
 
 /*---------------------------------------------------------------------------*/
-
-static int temp;
-static int count;
+//stores 3 temp values at a time
+static int values[3];
 
 static struct unicast_conn unicast;
 static const struct unicast_callbacks unicast_callbacks = {};
@@ -35,15 +34,28 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
 
 	packetbuf_clear();
-	char result[4];
-	int tempAv = (temp / count);
-	sprintf(result, "%d", tempAv); 
+	
+	int val = 0;
+	
+	int i;
+	//add the array
+	for(i = 0; i < 3; i++){
+
+		val = val + values[i];
+	
+	}
+
+	//divided sum value by number of values for average
+	val = val / 3;
+	
+	//convert our int average value to char array
+	char value[5];
+	sprintf(value, "%d", val);
 
 
-	packetbuf_copyfrom(result, sizeof(result));
- 
+	packetbuf_copyfrom(value, 5);
 	//Test output of temperature and light for the sensor. Values are the average
-	printf("SENSOR VALUES -- temp: %s\n", result);		
+	printf("SENSOR VALUES -- temp: %d\n", val);		
 		
       	unicast_send(&unicast, from);
 
@@ -71,6 +83,13 @@ PROCESS_THREAD(sensor_information_process, ev, data)
 	//Open connections
 	broadcast_open(&broadcast, 123, &broadcast_call);
 	unicast_open(&unicast, 134, &unicast_callbacks);
+
+	//populating array with 0 values
+	int i;
+	for(i = 0; i < 3; i++){
+
+		values[i] = 0;
+	}
 	
 
 	while(1){
@@ -89,12 +108,23 @@ PROCESS_THREAD(sensor_information_process, ev, data)
 		//Reading temperature
 		valTemp = ((sht11_sensor.value(SHT11_SENSOR_TEMP) / 10) - 396) / 10;	
 
-		//temp a combination of current temp value and tempature read in. Added together and divided by a counter to get average
-		temp = temp + valTemp;
+		//move all values 1 to the left of array and fill last position with new temp value
+		for(i = 0; i < 3; i++){
 
-		//Count increments by 1 for every tempature read
-		count = count + 1;
-		
+			if(i +1 < 3){
+
+				values[i] = values[i +1];
+				
+				// last index int the array is populated with the new temp reading
+				if(i+1 == 2){
+				
+					values[i + 1] = valTemp; 
+				}
+
+			}
+
+		}
+	
 		//Reset etimer
 		etimer_reset(&etimer);
 
