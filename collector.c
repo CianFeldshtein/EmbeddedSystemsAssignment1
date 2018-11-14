@@ -42,7 +42,7 @@ static const struct unicast_callbacks unicast_callbacks = {recv_uc};
 PROCESS_THREAD(broadcast_process, ev, data)
 {
 	
-	//etimer, used to take temperature and light readings as set times
+	//etimer, used to take temperature readings as set times
 	static struct etimer etimer;
 
 	//On process exit, close both broadcast and unicast connections
